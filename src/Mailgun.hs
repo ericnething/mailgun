@@ -43,7 +43,10 @@ newtype AuthToken = AuthToken
 
 newtype EncodedAuthToken = EncodedAuthToken
   { unEncodedAuthToken :: Text
-  } deriving (Show, ToText)
+  } deriving Show
+
+instance ToText EncodedAuthToken where
+  toText = ("Basic " <>) . unEncodedAuthToken
 
 data TrackingClicks = YesTC | NoTC | HtmlOnly
 
@@ -85,29 +88,6 @@ data Message = Message
   , o_headers         :: [(Text, Text)]
   , o_vars            :: [(Text, Text)]
   } deriving Show
-
--- instance ToJSON Message where
---   toJSON Message{..} = object $
---     [ "from"              .= from
---     , "to"                .= to
---     , "cc"                .= cc
---     , "bcc"               .= bcc
---     , "subject"           .= subject
---     , "text"              .= text
---     , "html"              .= html
---     , "o:tag"             .= o_tag
---     , "o:campaign"        .= o_campaign
---     , "o:deliverytime"    .= o_deliverytime
---     , "o:dkim"            .= o_dkim
---     , "o:testmode"        .= o_testmode
---     , "o:tracking"        .= o_tracking
---     , "o:tracking-clicks" .= o_tracking_clicks
---     , "o:tracking-opens"  .= o_tracking_opens
---     ] <> headers <> vars
-    
---     where headers = convert "h:" o_headers
---           vars    = convert "v:" o_vars
---           convert str = concatMap (\(k, v) -> [(str <> tshow k) .= v])
 
 instance ToFormUrlEncoded Message where
   toFormUrlEncoded Message{..} =
@@ -203,7 +183,6 @@ type MailgunAPI =
   :> "messages"
   :> ReqBody '[FormUrlEncoded] Message
   :> Post '[JSON] MessageResponse
-  :> Debug
 
 data Debug
 
@@ -219,7 +198,7 @@ api = Proxy
 message' :: Maybe EncodedAuthToken
          -> Account
          -> Message
-         -> Req -- EitherT ServantError IO MessageResponse
+         -> EitherT ServantError IO MessageResponse
 
 message' = client api (BaseUrl Https "api.mailgun.net" 443)
 
